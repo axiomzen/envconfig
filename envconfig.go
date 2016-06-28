@@ -199,3 +199,133 @@ func decoderFrom(field reflect.Value) Decoder {
 
 	return nil
 }
+
+// exportRec recursive helper function
+func exportRec(prefix string, spec interface{}, result *[]string) error {
+	s := reflect.ValueOf(spec)
+
+	if s.Kind() != reflect.Ptr {
+		return ErrInvalidSpecification
+	}
+
+	s = s.Elem()
+
+	if s.Kind() != reflect.Struct {
+		return ErrInvalidSpecification
+	}
+
+	typeOfSpec := s.Type()
+
+	for i := 0; i < s.NumField(); i++ {
+		f := s.Field(i)
+
+		if !f.CanSet() || typeOfSpec.Field(i).Tag.Get("ignored") == "true" {
+			continue
+		}
+
+		if typeOfSpec.Field(i).Anonymous && f.Kind() == reflect.Struct {
+			embeddedPtr := f.Addr().Interface()
+			// ok to call recursivley with pointer to struct
+			if err := exportRec(prefix, embeddedPtr, result); err != nil {
+				return err
+			}
+
+			// we don't need to do anything here with structs themselves
+			continue
+		}
+
+		alt := typeOfSpec.Field(i).Tag.Get("envconfig")
+		fieldName := typeOfSpec.Field(i).Name
+		if alt != "" {
+			fieldName = alt
+		}
+
+		// the string needs to look like "KEY=value"
+		key := strings.ToUpper(fmt.Sprintf("%s_%s", prefix, fieldName))
+
+		req := typeOfSpec.Field(i).Tag.Get("required")
+
+		if !isZero(f) {
+			// export this field, we set it manually
+			// todo: using fmt.Sprintf here to get the string value, see if this is ok
+
+			// need to customize strings as they render as [thing separed by spaces]
+			if f.Kind() == reflect.Slice || f.Kind() == reflect.Array {
+				r := strings.Replace(fmt.Sprintf("%s=%v", key, f.Interface()), "[", "", -1)
+				r = strings.Replace(r, "]", "", -1)
+				r = strings.Replace(r, " ", ",", -1)
+				//fmt.Println("appending non zero array or slice: " + r)
+				*result = append(*result, r)
+			} else if f.Kind() == reflect.Ptr {
+				if !f.IsNil() {
+					elem := f.Elem()
+					r := fmt.Sprintf("%s=%v", key, elem.Interface())
+					*result = append(*result, r)
+				}
+			} else {
+				r := fmt.Sprintf("%s=%v", key, f.Interface())
+				//fmt.Println("appending non zero value: " + r)
+				*result = append(*result, r)
+			}
+			// were done with anything that is not zero'd
+			continue
+		}
+
+		// check default
+		def := typeOfSpec.Field(i).Tag.Get("default")
+		if def != "" {
+			// write this one
+			//fmt.Println("appending default: " + fmt.Sprintf("%s=%s", key, def))
+			*result = append(*result, fmt.Sprintf("%s=%s", key, def))
+		} else if req == "true" {
+			return fmt.Errorf("required key %s missing value", key)
+		} else {
+			// nothing to export ... ?
+			return fmt.Errorf("required key %s missing value", key)
+		}
+	}
+	return nil
+}
+
+// isZero inspired from http://stackoverflow.com/questions/23555241/golang-reflection-how-to-get-zero-value-of-a-field-type
+func isZero(v reflect.Value) bool {
+	//i.e. uninitialized struct, nil, 0, empty string, etc
+	switch v.Kind() {
+	case reflect.Func, reflect.Map, reflect.Slice:
+		return v.IsNil()
+	case reflect.Array:
+		z := true
+		for i := 0; i < v.Len(); i++ {
+			z = z && isZero(v.Index(i))
+		}
+		return z
+	case reflect.Struct:
+		z := true
+		for i := 0; i < v.NumField(); i++ {
+			if v.Field(i).CanSet() {
+				z = z && isZero(v.Field(i))
+			}
+		}
+		return z
+	case reflect.Ptr:
+		return isZero(reflect.Indirect(v))
+	case reflect.Invalid:
+		return true
+	}
+
+	// Compare other types directly:
+	//fmt.Printf("kind is %v", v.Kind())
+	z := reflect.Zero(v.Type())
+	result := v.Interface() == z.Interface()
+
+	return result
+}
+
+// Export takes an existing config struct and outputs
+// exec.Command.Env friendly env settings
+func Export(prefix string, spec interface{}) ([]string, error) {
+
+	var result []string
+	err := exportRec(prefix, spec, &result)
+	return result, err
+}

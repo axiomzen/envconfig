@@ -5,7 +5,9 @@
 package envconfig
 
 import (
+	//"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,24 +15,24 @@ import (
 type Specification struct {
 	Embedded
 	EmbeddedButIgnored           `ignored:"true"`
-	Debug                        bool
+	Debug                        bool //5
 	Port                         int
 	Rate                         float32
 	User                         string
 	TTL                          uint32
-	Timeout                      time.Duration
+	Timeout                      time.Duration //10
 	AdminUsers                   []string
 	MagicNumbers                 []int
 	MultiWordVar                 string
 	SomePointer                  *string
-	SomePointerWithDefault       *string `default:"foo2baz"`
+	SomePointerWithDefault       *string `default:"foo2baz"` //15
 	MultiWordVarWithAlt          string  `envconfig:"MULTI_WORD_VAR_WITH_ALT"`
 	MultiWordVarWithLowerCaseAlt string  `envconfig:"multi_word_var_with_lower_case_alt"`
 	NoPrefixWithAlt              string  `envconfig:"SERVICE_HOST"`
 	DefaultVar                   string  `default:"foobar"`
-	RequiredVar                  string  `required:"true"`
+	RequiredVar                  string  `required:"true"` //20
 	NoPrefixDefault              string  `envconfig:"BROKER" default:"127.0.0.1"`
-	RequiredDefault              string  `required:"true" default:"foo2bar"`
+	RequiredDefault              string  `required:"true" default:"foo2bar"` //22
 	Ignored                      string  `ignored:"true"`
 }
 
@@ -104,6 +106,137 @@ func TestProcess(t *testing.T) {
 	}
 	if s.Ignored != "" {
 		t.Errorf("expected empty string, got %#v", s.Ignored)
+	}
+}
+
+func TestExport(t *testing.T) {
+	// TODO: brittle test
+	var s Specification
+
+	s.Embedded = Embedded{}
+	s.Embedded.Enabled = true
+	s.Embedded.EmbeddedPort = 5000
+	s.Embedded.MultiWordVar = "fooembedded"
+	s.Embedded.MultiWordVarWithAlt = "bazembedded"
+	s.Embedded.EmbeddedAlt = "embeddedalt"
+
+	s.Debug = true
+	s.Port = 8080
+	s.Rate = 0.5
+	s.User = "Kelsey"
+	s.TTL = 30
+	s.Timeout = 2 * time.Minute
+	s.AdminUsers = []string{"John", "Adam", "Will"}
+	s.MagicNumbers = []int{5, 10, 20}
+	s.MultiWordVar = "foo bar"
+	s.SomePointer = &s.MultiWordVar
+	s.MultiWordVarWithAlt = "ALT"
+	s.MultiWordVarWithLowerCaseAlt = "lower_casE"
+	s.NoPrefixWithAlt = "127.0.0.1"
+	s.RequiredVar = "foo"
+	s.Ignored = "was-not-ignored"
+
+	res, err := Export("env_config", &s)
+
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if res[0] != "ENV_CONFIG_ENABLED=true" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_ENABLED=true", res[0])
+	}
+	if res[1] != "ENV_CONFIG_EMBEDDEDPORT=5000" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_EMBEDDEDPORT=5000", res[1])
+	}
+	if res[2] != "ENV_CONFIG_MULTIWORDVAR=fooembedded" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_MULTIWORDVAR=fooembedded", res[2])
+	}
+	if res[3] != "ENV_CONFIG_MULTI_WITH_DIFFERENT_ALT=bazembedded" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_MULTI_WITH_DIFFERENT_ALT=bazembedded", res[3])
+	}
+	if res[4] != "ENV_CONFIG_EMBEDDED_WITH_ALT=embeddedalt" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_EMBEDDED_WITH_ALT=embeddedalt", res[4])
+	}
+	if res[5] != "ENV_CONFIG_DEBUG=true" {
+		t.Errorf("expected %v, got %s", "ENV_CONFIG_DEBUG=true", res[5])
+	}
+	if res[6] != "ENV_CONFIG_PORT=8080" {
+		t.Errorf("expected %d, got %s", "ENV_CONFIG_PORT=8080", res[6])
+	}
+	if res[7] != "ENV_CONFIG_RATE=0.5" {
+		t.Errorf("expected %f, got %s", "ENV_CONFIG_RATE=0.5", res[7])
+	}
+	if res[9] != "ENV_CONFIG_TTL=30" {
+		t.Errorf("expected %d, got %s", "ENV_CONFIG_TTL=30", res[9])
+	}
+	if res[8] != "ENV_CONFIG_USER=Kelsey" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_USER=Kelsey", res[8])
+	}
+	if res[10] != "ENV_CONFIG_TIMEOUT=2m0s" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_TIMEOUT=2m0s", res[10])
+	}
+	{
+		admins := strings.Split(res[11], "=")
+		if len(admins) != 2 || admins[0] != "ENV_CONFIG_ADMINUSERS" {
+			t.Errorf("expected %s, got %#v", "ENV_CONFIG_ADMINUSERS", admins[0])
+		} else {
+			admins = strings.Split(admins[1], ",")
+			if len(admins) != 3 ||
+				admins[0] != "John" ||
+				admins[1] != "Adam" ||
+				admins[2] != "Will" {
+				t.Errorf("expected %#v, got %#v", []string{"John", "Adam", "Will"}, admins)
+			}
+		}
+	}
+
+	{
+		magic := strings.Split(res[12], "=")
+
+		if len(magic) != 2 || magic[0] != "ENV_CONFIG_MAGICNUMBERS" {
+			t.Errorf("expected %s, got %#v", "ENV_CONFIG_MAGICNUMBERS", magic[0])
+		} else {
+			magic = strings.Split(magic[1], ",")
+			if len(magic) != 3 ||
+				magic[0] != "5" ||
+				magic[1] != "10" ||
+				magic[2] != "20" {
+				t.Errorf("expected %#v, got %#v", []string{"5", "10", "20"}, magic)
+			}
+		}
+	}
+
+	if res[13] != "ENV_CONFIG_MULTIWORDVAR=foo bar" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_MULTIWORDVAR=foo bar", res[13])
+	}
+	if res[14] != "ENV_CONFIG_SOMEPOINTER=foo bar" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_SOMEPOINTER=foo bar", res[14])
+	}
+	if res[15] != "ENV_CONFIG_SOMEPOINTERWITHDEFAULT=foo2baz" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_SOMEPOINTERWITHDEFAULT=foo2baz", res[15])
+	}
+	if res[16] != "ENV_CONFIG_MULTI_WORD_VAR_WITH_ALT=ALT" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_MULTI_WORD_VAR_WITH_ALT=ALT", res[16])
+	}
+	// wrong?
+	if res[17] != "ENV_CONFIG_MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE", res[17])
+	}
+	if res[18] != "ENV_CONFIG_SERVICE_HOST=127.0.0.1" {
+		t.Errorf("expected %v, got %v", "ENV_CONFIG_SERVICE_HOST=127.0.0.1", res[20])
+	}
+	if res[20] != "ENV_CONFIG_REQUIREDVAR=foo" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDVAR=foo", res[20])
+	}
+	if res[21] != "ENV_CONFIG_BROKER=127.0.0.1" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_BROKER=127.0.0.1", res[21])
+	}
+	if res[22] != "ENV_CONFIG_REQUIREDDEFAULT=foo2bar" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDDEFAULT=foo2bar", res[22])
+	}
+	// expect ignored to not be there
+	if len(res) != 23 {
+		t.Errorf("expected length to be 23, got %d", len(res))
 	}
 }
 
