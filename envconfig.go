@@ -288,15 +288,22 @@ func exportRec(prefix string, spec interface{}, result *[]string) error {
 }
 
 // isZero inspired from http://stackoverflow.com/questions/23555241/golang-reflection-how-to-get-zero-value-of-a-field-type
+// if it is a bool or int or float value, we cannot test for zero'ed as the zero case might be
+// a valid value (unfortunatley)
 func isZero(v reflect.Value) bool {
-	//i.e. uninitialized struct, nil, 0, empty string, etc
+
 	switch v.Kind() {
+	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Float32, reflect.Float64, reflect.Bool:
+		return false
 	case reflect.Func, reflect.Map, reflect.Slice:
 		return v.IsNil()
 	case reflect.Array:
 		z := true
 		for i := 0; i < v.Len(); i++ {
 			z = z && isZero(v.Index(i))
+			if !z {
+				return z
+			}
 		}
 		return z
 	case reflect.Struct:
@@ -305,15 +312,21 @@ func isZero(v reflect.Value) bool {
 			if v.Field(i).CanSet() {
 				z = z && isZero(v.Field(i))
 			}
+			if !z {
+				return z
+			}
 		}
 		return z
 	case reflect.Ptr:
 		return isZero(reflect.Indirect(v))
 	case reflect.Invalid:
+		//i.e. uninitialized struct, nil, 0, empty string, etc
 		return true
 	}
 
-	// Compare other types directly:
+	// Compare other types directly;
+	// perhaps numeric types shouldn't be counted as sometimes
+	// you may want a zero - double check if we can detect that
 	//fmt.Printf("kind is %v", v.Kind())
 	z := reflect.Zero(v.Type())
 	result := v.Interface() == z.Interface()
