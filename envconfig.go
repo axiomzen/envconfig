@@ -201,7 +201,7 @@ func decoderFrom(field reflect.Value) Decoder {
 }
 
 // exportRec recursive helper function
-func exportRec(prefix string, spec interface{}, result *[]string) error {
+func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults bool) error {
 	s := reflect.ValueOf(spec)
 
 	if s.Kind() != reflect.Ptr {
@@ -226,7 +226,7 @@ func exportRec(prefix string, spec interface{}, result *[]string) error {
 		if typeOfSpec.Field(i).Anonymous && f.Kind() == reflect.Struct {
 			embeddedPtr := f.Addr().Interface()
 			// ok to call recursivley with pointer to struct
-			if err := exportRec(prefix, embeddedPtr, result); err != nil {
+			if err := exportRec(prefix, embeddedPtr, result, fillDefaults); err != nil {
 				return err
 			}
 
@@ -235,13 +235,13 @@ func exportRec(prefix string, spec interface{}, result *[]string) error {
 		}
 
 		alt := typeOfSpec.Field(i).Tag.Get("envconfig")
-		fieldName := typeOfSpec.Field(i).Name
-		if alt != "" {
-			fieldName = alt
-		}
-
 		// the string needs to look like "KEY=value"
-		key := strings.ToUpper(fmt.Sprintf("%s_%s", prefix, fieldName))
+		var key string
+		if alt != "" {
+			key = strings.ToUpper(alt)
+		} else {
+			key = strings.ToUpper(fmt.Sprintf("%s_%s", prefix, typeOfSpec.Field(i).Name))
+		}
 
 		req := typeOfSpec.Field(i).Tag.Get("required")
 
@@ -277,6 +277,19 @@ func exportRec(prefix string, spec interface{}, result *[]string) error {
 			// write this one
 			//fmt.Println("appending default: " + fmt.Sprintf("%s=%s", key, def))
 			*result = append(*result, fmt.Sprintf("%s=%s", key, def))
+			// set the field if specified
+			if fillDefaults {
+				err := processField(def, f)
+				if err != nil {
+					return &ParseError{
+						KeyName:   key,
+						FieldName: typeOfSpec.Field(i).Name,
+						TypeName:  f.Type().String(),
+						Value:     def,
+					}
+				}
+			}
+
 		} else if req == "true" {
 			return fmt.Errorf("required key %s missing value", key)
 		} else {
@@ -336,9 +349,9 @@ func isZero(v reflect.Value) bool {
 
 // Export takes an existing config struct and outputs
 // exec.Command.Env friendly env settings
-func Export(prefix string, spec interface{}) ([]string, error) {
+func Export(prefix string, spec interface{}, fillDefaults bool) ([]string, error) {
 
 	var result []string
-	err := exportRec(prefix, spec, &result)
+	err := exportRec(prefix, spec, &result, fillDefaults)
 	return result, err
 }

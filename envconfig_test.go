@@ -136,12 +136,22 @@ func TestExport(t *testing.T) {
 	s.RequiredVar = "foo"
 	s.Ignored = "was-not-ignored"
 
-	res, err := Export("env_config", &s)
+	res, err := Export("env_config", &s, true)
 
 	if err != nil {
 		t.Error(err.Error())
 	}
 
+	// test default filling
+	if s.SomePointerWithDefault == nil {
+		t.Errorf("expected SomePointerWithDefault to not be nil")
+	}
+	if *s.SomePointerWithDefault != "foo2baz" {
+		t.Errorf("expected %s, got %s", "foo2baz", *s.SomePointerWithDefault)
+	}
+	if s.DefaultVar != "foobar" {
+		t.Errorf("expected %s, got %s", "foobar", s.DefaultVar)
+	}
 	if res[0] != "ENV_CONFIG_ENABLED=true" {
 		t.Errorf("expected %v, got %s", "ENV_CONFIG_ENABLED=true", res[0])
 	}
@@ -151,11 +161,11 @@ func TestExport(t *testing.T) {
 	if res[2] != "ENV_CONFIG_MULTIWORDVAR=fooembedded" {
 		t.Errorf("expected %v, got %s", "ENV_CONFIG_MULTIWORDVAR=fooembedded", res[2])
 	}
-	if res[3] != "ENV_CONFIG_MULTI_WITH_DIFFERENT_ALT=bazembedded" {
-		t.Errorf("expected %v, got %s", "ENV_CONFIG_MULTI_WITH_DIFFERENT_ALT=bazembedded", res[3])
+	if res[3] != "MULTI_WITH_DIFFERENT_ALT=bazembedded" {
+		t.Errorf("expected %v, got %s", "MULTI_WITH_DIFFERENT_ALT=bazembedded", res[3])
 	}
-	if res[4] != "ENV_CONFIG_EMBEDDED_WITH_ALT=embeddedalt" {
-		t.Errorf("expected %v, got %s", "ENV_CONFIG_EMBEDDED_WITH_ALT=embeddedalt", res[4])
+	if res[4] != "EMBEDDED_WITH_ALT=embeddedalt" {
+		t.Errorf("expected %v, got %s", "EMBEDDED_WITH_ALT=embeddedalt", res[4])
 	}
 	if res[5] != "ENV_CONFIG_DEBUG=true" {
 		t.Errorf("expected %v, got %s", "ENV_CONFIG_DEBUG=true", res[5])
@@ -215,21 +225,21 @@ func TestExport(t *testing.T) {
 	if res[15] != "ENV_CONFIG_SOMEPOINTERWITHDEFAULT=foo2baz" {
 		t.Errorf("expected %v, got %v", "ENV_CONFIG_SOMEPOINTERWITHDEFAULT=foo2baz", res[15])
 	}
-	if res[16] != "ENV_CONFIG_MULTI_WORD_VAR_WITH_ALT=ALT" {
-		t.Errorf("expected %v, got %v", "ENV_CONFIG_MULTI_WORD_VAR_WITH_ALT=ALT", res[16])
+	if res[16] != "MULTI_WORD_VAR_WITH_ALT=ALT" {
+		t.Errorf("expected %v, got %v", "MULTI_WORD_VAR_WITH_ALT=ALT", res[16])
 	}
 	// wrong?
-	if res[17] != "ENV_CONFIG_MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE" {
-		t.Errorf("expected %v, got %v", "ENV_CONFIG_MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE", res[17])
+	if res[17] != "MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE" {
+		t.Errorf("expected %v, got %v", "MULTI_WORD_VAR_WITH_LOWER_CASE_ALT=lower_casE", res[17])
 	}
-	if res[18] != "ENV_CONFIG_SERVICE_HOST=127.0.0.1" {
-		t.Errorf("expected %v, got %v", "ENV_CONFIG_SERVICE_HOST=127.0.0.1", res[20])
+	if res[18] != "SERVICE_HOST=127.0.0.1" {
+		t.Errorf("expected %v, got %v", "SERVICE_HOST=127.0.0.1", res[20])
 	}
 	if res[20] != "ENV_CONFIG_REQUIREDVAR=foo" {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDVAR=foo", res[20])
 	}
-	if res[21] != "ENV_CONFIG_BROKER=127.0.0.1" {
-		t.Errorf("expected %s, got %s", "ENV_CONFIG_BROKER=127.0.0.1", res[21])
+	if res[21] != "BROKER=127.0.0.1" {
+		t.Errorf("expected %s, got %s", "BROKER=127.0.0.1", res[21])
 	}
 	if res[22] != "ENV_CONFIG_REQUIREDDEFAULT=foo2bar" {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDDEFAULT=foo2bar", res[22])
