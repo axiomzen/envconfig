@@ -243,8 +243,6 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 			key = strings.ToUpper(fmt.Sprintf("%s_%s", prefix, typeOfSpec.Field(i).Name))
 		}
 
-		req := typeOfSpec.Field(i).Tag.Get("required")
-
 		if !isZero(f) {
 			// export this field, we set it manually
 			// todo: using fmt.Sprintf here to get the string value, see if this is ok
@@ -271,6 +269,10 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 			continue
 		}
 
+		// check required
+		req := typeOfSpec.Field(i).Tag.Get("required")
+		//fmt.Printf("required: %s\n", req)
+
 		// check default
 		def := typeOfSpec.Field(i).Tag.Get("default")
 		if def != "" {
@@ -294,7 +296,8 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 			return fmt.Errorf("required key %s missing value", key)
 		} else {
 			// nothing to export ... ?
-			return fmt.Errorf("required key %s missing value", key)
+			fmt.Printf("warning: key %s will not be exported\n", key)
+			//return fmt.Errorf("required key %s missing value", key)
 		}
 	}
 	return nil

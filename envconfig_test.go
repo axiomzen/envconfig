@@ -34,6 +34,7 @@ type Specification struct {
 	NoPrefixDefault              string  `envconfig:"BROKER" default:"127.0.0.1"`
 	RequiredDefault              string  `required:"true" default:"foo2bar"` //22
 	Ignored                      string  `ignored:"true"`
+	NotRequiredVar               string  `required:"false"`
 }
 
 type Embedded struct {
@@ -244,7 +245,7 @@ func TestExport(t *testing.T) {
 	if res[22] != "ENV_CONFIG_REQUIREDDEFAULT=foo2bar" {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDDEFAULT=foo2bar", res[22])
 	}
-	// expect ignored to not be there
+	// expect ignored & NotRequiredVar to not be there
 	if len(res) != 23 {
 		t.Errorf("expected length to be 23, got %d", len(res))
 	}
