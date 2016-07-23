@@ -310,6 +310,11 @@ func isZero(v reflect.Value) bool {
 
 	switch v.Kind() {
 	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Float32, reflect.Float64, reflect.Bool:
+		// lets special case time.Duration, as we very most unlikely would want it to be non zero
+		typ := v.Type()
+		if v.Kind() == reflect.Int64 && typ.PkgPath() == "time" && typ.Name() == "Duration" {
+			return v.Int() == 0
+		}
 		return false
 	case reflect.Func, reflect.Map, reflect.Slice:
 		return v.IsNil()

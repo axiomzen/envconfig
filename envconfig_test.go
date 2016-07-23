@@ -25,16 +25,17 @@ type Specification struct {
 	MagicNumbers                 []int
 	MultiWordVar                 string
 	SomePointer                  *string
-	SomePointerWithDefault       *string `default:"foo2baz"` //15
-	MultiWordVarWithAlt          string  `envconfig:"MULTI_WORD_VAR_WITH_ALT"`
-	MultiWordVarWithLowerCaseAlt string  `envconfig:"multi_word_var_with_lower_case_alt"`
-	NoPrefixWithAlt              string  `envconfig:"SERVICE_HOST"`
-	DefaultVar                   string  `default:"foobar"`
-	RequiredVar                  string  `required:"true"` //20
-	NoPrefixDefault              string  `envconfig:"BROKER" default:"127.0.0.1"`
-	RequiredDefault              string  `required:"true" default:"foo2bar"` //22
-	Ignored                      string  `ignored:"true"`
-	NotRequiredVar               string  `required:"false"`
+	SomePointerWithDefault       *string       `default:"foo2baz"` //15
+	MultiWordVarWithAlt          string        `envconfig:"MULTI_WORD_VAR_WITH_ALT"`
+	MultiWordVarWithLowerCaseAlt string        `envconfig:"multi_word_var_with_lower_case_alt"`
+	NoPrefixWithAlt              string        `envconfig:"SERVICE_HOST"`
+	DefaultVar                   string        `default:"foobar"`
+	RequiredVar                  string        `required:"true"` //20
+	NoPrefixDefault              string        `envconfig:"BROKER" default:"127.0.0.1"`
+	RequiredDefault              string        `required:"true" default:"foo2bar"` //22
+	Ignored                      string        `ignored:"true"`
+	NotRequiredVar               string        `required:"false"`
+	TimeoutWithDefault           time.Duration `default:"32h"`
 }
 
 type Embedded struct {
@@ -245,9 +246,12 @@ func TestExport(t *testing.T) {
 	if res[22] != "ENV_CONFIG_REQUIREDDEFAULT=foo2bar" {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDDEFAULT=foo2bar", res[22])
 	}
+	if res[23] != "ENV_CONFIG_TIMEOUTWITHDEFAULT=32h" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_TIMEOUTWITHDEFAULT", res[23])
+	}
 	// expect ignored & NotRequiredVar to not be there
-	if len(res) != 23 {
-		t.Errorf("expected length to be 23, got %d", len(res))
+	if len(res) != 24 {
+		t.Errorf("expected length to be 24, got %d", len(res))
 	}
 }
 
