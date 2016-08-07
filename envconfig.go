@@ -88,7 +88,7 @@ func Process(prefix string, spec interface{}) error {
 		req := typeOfSpec.Field(i).Tag.Get("required")
 		if !ok && def == "" {
 			if req == "true" {
-				return fmt.Errorf("required key %s missing value", key)
+				return fmt.Errorf("[Process] required key %s missing value", key)
 			}
 			continue
 		}
@@ -297,10 +297,10 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 			}
 
 		} else if req == "true" {
-			return fmt.Errorf("required key %s missing value", key)
+			return fmt.Errorf("[Export] required key %s missing value", key)
 		} else {
 			// nothing to export ... ?
-			fmt.Printf("warning: key %s will not be exported\n", key)
+			fmt.Printf("[Export] warning: key %s will not be exported\n", key)
 			//return fmt.Errorf("required key %s missing value", key)
 		}
 	}
