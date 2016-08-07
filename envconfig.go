@@ -71,10 +71,13 @@ func Process(prefix string, spec interface{}) error {
 		// `os.Getenv` cannot differentiate between an explicitly set empty value
 		// and an unset value. `os.LookupEnv` is preferred to `syscall.Getenv`,
 		// but it is only available in go1.5 or newer.
+		//value, ok := os.LookupEnv(key)
 		value, ok := syscall.Getenv(key)
+		//fmt.Printf("key: %s, value: %s, ok = %v\n", key, value, ok)
 		if !ok && alt != "" {
 			key := strings.ToUpper(fieldName)
 			value, ok = syscall.Getenv(key)
+			//fmt.Printf("key: %s, value: %s, ok = %v\n", key, value, ok)
 		}
 
 		def := typeOfSpec.Field(i).Tag.Get("default")
@@ -99,6 +102,7 @@ func Process(prefix string, spec interface{}) error {
 				Value:     value,
 			}
 		}
+
 	}
 	return nil
 }
