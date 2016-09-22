@@ -36,6 +36,7 @@ type Specification struct {
 	Ignored                      string        `ignored:"true"`
 	NotRequiredVar               string        `required:"false"`
 	TimeoutWithDefault           time.Duration `default:"32h"`
+	DefaultInt                   int           `default:"7"`
 }
 
 type Embedded struct {
@@ -121,6 +122,10 @@ func TestProcess(t *testing.T) {
 	}
 	if s.Ignored != "" {
 		t.Errorf("expected empty string, got %#v", s.Ignored)
+	}
+
+	if s.DefaultInt != 7 {
+		t.Errorf("expected %d, got %d", 7, s.DefaultInt)
 	}
 
 }
@@ -261,11 +266,14 @@ func TestExport(t *testing.T) {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_REQUIREDDEFAULT=foo2bar", res[22])
 	}
 	if res[23] != "ENV_CONFIG_TIMEOUTWITHDEFAULT=32h" {
-		t.Errorf("expected %s, got %s", "ENV_CONFIG_TIMEOUTWITHDEFAULT", res[23])
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_TIMEOUTWITHDEFAULT=32h", res[23])
+	}
+	if res[24] != "ENV_CONFIG_DEFAULTINT=7" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_DEFAULTINT=7", res[24])
 	}
 	// expect ignored & NotRequiredVar to not be there
-	if len(res) != 24 {
-		t.Errorf("expected length to be 24, got %d", len(res))
+	if len(res) != 25 {
+		t.Errorf("expected length to be %d, got %d", 25, len(res))
 	}
 }
 

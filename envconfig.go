@@ -285,6 +285,7 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 			*result = append(*result, fmt.Sprintf("%s=%s", key, def))
 			// set the field if specified
 			if fillDefaults {
+				//fmt.Printf("Filling default: %s to %#v\n", def, f)
 				err := processField(def, f)
 				if err != nil {
 					return &ParseError{
@@ -313,13 +314,6 @@ func exportRec(prefix string, spec interface{}, result *[]string, fillDefaults b
 func isZero(v reflect.Value) bool {
 
 	switch v.Kind() {
-	case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int8, reflect.Float32, reflect.Float64, reflect.Bool:
-		// lets special case time.Duration, as we very most unlikely would want it to be non zero
-		typ := v.Type()
-		if v.Kind() == reflect.Int64 && typ.PkgPath() == "time" && typ.Name() == "Duration" {
-			return v.Int() == 0
-		}
-		return false
 	case reflect.Func, reflect.Map, reflect.Slice:
 		return v.IsNil()
 	case reflect.Array:
@@ -349,14 +343,8 @@ func isZero(v reflect.Value) bool {
 		return true
 	}
 
-	// Compare other types directly;
-	// perhaps numeric types shouldn't be counted as sometimes
-	// you may want a zero - double check if we can detect that
-	//fmt.Printf("kind is %v", v.Kind())
-	z := reflect.Zero(v.Type())
-	result := v.Interface() == z.Interface()
-
-	return result
+	// Compare other types that support equality operation
+	return v.Interface() == reflect.Zero(v.Type()).Interface()
 }
 
 // Export takes an existing config struct and outputs
