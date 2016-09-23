@@ -337,7 +337,10 @@ func isZero(v reflect.Value) bool {
 		}
 		return z
 	case reflect.Ptr:
-		return isZero(reflect.Indirect(v))
+		// if you use a pointer, we are assuming that it if is nil, it is zero
+		// and not zero otherwise
+		return v.IsNil()
+		//return isZero(reflect.Indirect(v))
 	case reflect.Invalid:
 		//i.e. uninitialized struct, nil, 0, empty string, etc
 		return true

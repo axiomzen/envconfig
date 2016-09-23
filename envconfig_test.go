@@ -37,6 +37,8 @@ type Specification struct {
 	NotRequiredVar               string        `required:"false"`
 	TimeoutWithDefault           time.Duration `default:"32h"`
 	DefaultInt                   int           `default:"7"`
+	DefaultBoolPointer           *bool         `default:"true"`
+	DefaultBoolPointerOveridden  *bool         `default:"true"`
 }
 
 type Embedded struct {
@@ -128,6 +130,14 @@ func TestProcess(t *testing.T) {
 		t.Errorf("expected %d, got %d", 7, s.DefaultInt)
 	}
 
+	if *s.DefaultBoolPointer != true {
+		t.Errorf("expected %v, got %v", true, *s.DefaultBoolPointer)
+	}
+
+	if *s.DefaultBoolPointerOveridden != true {
+		t.Errorf("expected %v, got %v", true, *s.DefaultBoolPointerOveridden)
+	}
+
 }
 
 func TestExport(t *testing.T) {
@@ -156,6 +166,9 @@ func TestExport(t *testing.T) {
 	s.NoPrefixWithAlt = "127.0.0.1"
 	s.RequiredVar = "foo"
 	s.Ignored = "was-not-ignored"
+	f := false
+	//s.DefaultBoolPointer = nil
+	s.DefaultBoolPointerOveridden = &f
 
 	res, err := Export("env_config", &s, true)
 
@@ -271,9 +284,15 @@ func TestExport(t *testing.T) {
 	if res[24] != "ENV_CONFIG_DEFAULTINT=7" {
 		t.Errorf("expected %s, got %s", "ENV_CONFIG_DEFAULTINT=7", res[24])
 	}
+	if res[25] != "ENV_CONFIG_DEFAULTBOOLPOINTER=true" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_DEFAULTBOOLPOINTER=true", res[25])
+	}
+	if res[26] != "ENV_CONFIG_DEFAULTBOOLPOINTEROVERIDDEN=false" {
+		t.Errorf("expected %s, got %s", "ENV_CONFIG_DEFAULTBOOLPOINTEROVERIDDEN=false", res[26])
+	}
 	// expect ignored & NotRequiredVar to not be there
-	if len(res) != 25 {
-		t.Errorf("expected length to be %d, got %d", 25, len(res))
+	if len(res) != 27 {
+		t.Errorf("expected length to be %d, got %d", 27, len(res))
 	}
 }
 
