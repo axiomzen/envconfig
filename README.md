@@ -1,6 +1,7 @@
 # envconfig
 
 [![Build Status](https://travis-ci.org/axiomzen/envconfig.png)](https://travis-ci.org/axiomzen/envconfig)
+[![Coverage Status](https://coveralls.io/repos/github/axiomzen/envconfig/badge.svg?branch=master)](https://coveralls.io/github/axiomzen/envconfig?branch=master)
 
 ```Go
 import "github.com/axiomzen/envconfig"
