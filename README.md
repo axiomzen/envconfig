@@ -22,6 +22,7 @@ export MYAPP_USER=Kelsey
 export MYAPP_RATE="0.5"
 export MYAPP_TIMEOUT="3m"
 export MYAPP_USERS="rob,ken,robert"
+export MYAPP_COLORCODES="red:1,green:2,blue:3"
 ```
 
 Write some code:
@@ -34,16 +35,17 @@ import (
     "log"
     "time"
 
-    "github.com/kelseyhightower/envconfig"
+    "github.com/axiomzen/envconfig"
 )
 
 type Specification struct {
-    Debug   bool
-    Port    int
-    User    string
-    Users   []string
-    Rate    float32
-    Timeout time.Duration
+    Debug       bool
+    Port        int
+    User        string
+    Users       []string
+    Rate        float32
+    Timeout     time.Duration
+    ColorCodes  map[string]int
 }
 
 func main() {
@@ -62,6 +64,11 @@ func main() {
     for _, u := range s.Users {
         fmt.Printf("  %s\n", u)
     }
+    
+     fmt.Println("Color codes:")
+        for k, v := range s.ColorCodes {
+            fmt.Printf("  %s: %d\n", k, v)
+        }
 }
 ```
 
@@ -77,6 +84,10 @@ Users:
   rob
   ken
   robert
+Color codes:
+  red: 1
+  green: 2
+  blue: 3  
 ```
 
 ## Struct Tag Support
@@ -136,6 +147,8 @@ envconfig supports supports these struct field types:
   * int8, int16, int32, int64
   * bool
   * float32, float64
+  * slices of any supported type
+  * maps (keys and values of any supported type)
 
 Embedded structs using these fields are also supported.
 
