@@ -9,7 +9,7 @@ matrix:
 
 before_install:
   - go get golang.org/x/tools/cmd/cover
-  - go get github.com/golang/lint/golint
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.17.1
   - go get github.com/mattn/goveralls
 
 install:
@@ -17,7 +17,7 @@ install:
 
 script:
   - go vet -x ./...
-  - $HOME/gopath/bin/golint ./...
+  - $HOME/gopath/bin/golangci-lint run --tests --disable-all --enable=goimports --enable=golint --enable=govet
   - go test -v ./...
   - go test -covermode=count -coverprofile=profile.cov .
 
